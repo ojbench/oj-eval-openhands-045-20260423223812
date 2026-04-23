@@ -123,28 +123,28 @@ struct ElevatorSystem {
     }
     
     void cancel_request(int x) {
-        // Rebuild heaps without the cancelled request
-        MinHeap new_up;
-        MaxHeap new_down;
-        
-        while (!up_heap.empty()) {
-            int val = up_heap.top();
-            up_heap.pop();
-            if (val != x) {
-                new_up.push(val);
+        // Remove from appropriate heap
+        if (x >= current_floor) {
+            MinHeap new_up;
+            while (!up_heap.empty()) {
+                int val = up_heap.top();
+                up_heap.pop();
+                if (val != x) {
+                    new_up.push(val);
+                }
             }
-        }
-        
-        while (!down_heap.empty()) {
-            int val = down_heap.top();
-            down_heap.pop();
-            if (val != x) {
-                new_down.push(val);
+            up_heap = new_up;
+        } else {
+            MaxHeap new_down;
+            while (!down_heap.empty()) {
+                int val = down_heap.top();
+                down_heap.pop();
+                if (val != x) {
+                    new_down.push(val);
+                }
             }
+            down_heap = new_down;
         }
-        
-        up_heap = new_up;
-        down_heap = new_down;
     }
     
     void action() {
@@ -158,7 +158,7 @@ struct ElevatorSystem {
                 up_heap.pop();
                 current_floor = next_floor;
                 
-                // Move requests that are now below current floor to down_heap
+                // Clean up heaps: move elements that are now in wrong heap
                 MinHeap new_up;
                 while (!up_heap.empty()) {
                     int val = up_heap.top();
@@ -177,7 +177,7 @@ struct ElevatorSystem {
                     down_heap.pop();
                     current_floor = next_floor;
                     
-                    // Move requests that are now above current floor to up_heap
+                    // Clean up heaps: move elements that are now in wrong heap
                     MaxHeap new_down;
                     while (!down_heap.empty()) {
                         int val = down_heap.top();
@@ -197,7 +197,7 @@ struct ElevatorSystem {
                 down_heap.pop();
                 current_floor = next_floor;
                 
-                // Move requests that are now above current floor to up_heap
+                // Clean up heaps: move elements that are now in wrong heap
                 MaxHeap new_down;
                 while (!down_heap.empty()) {
                     int val = down_heap.top();
@@ -216,7 +216,7 @@ struct ElevatorSystem {
                     up_heap.pop();
                     current_floor = next_floor;
                     
-                    // Move requests that are now below current floor to down_heap
+                    // Clean up heaps: move elements that are now in wrong heap
                     MinHeap new_up;
                     while (!up_heap.empty()) {
                         int val = up_heap.top();
