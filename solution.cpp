@@ -6,21 +6,15 @@ using namespace std;
 const int MAXN = 500005;
 
 struct MinHeap {
-    int arr[MAXN], cnt;
-    bool in_heap[MAXN];
+    int arr[MAXN];
+    int cnt;
     
     MinHeap() {
         cnt = 0;
-        for (int i = 0; i < MAXN; i++) {
-            in_heap[i] = false;
-        }
     }
     
     void push(int x) {
-        if (in_heap[x]) return;
         arr[++cnt] = x;
-        in_heap[x] = true;
-        
         for (int i = cnt, j = cnt >> 1; j; i = j, j >>= 1) {
             if (arr[j] > arr[i]) {
                 int tmp = arr[i];
@@ -32,9 +26,7 @@ struct MinHeap {
     
     void pop() {
         if (cnt == 0) return;
-        in_heap[arr[1]] = false;
         arr[1] = arr[cnt--];
-        
         for (int i = 1, j = i << 1; j <= cnt; i = j, j <<= 1) {
             if (j + 1 <= cnt && arr[j + 1] < arr[j]) j++;
             if (arr[j] < arr[i]) {
@@ -53,61 +45,29 @@ struct MinHeap {
         return cnt == 0;
     }
     
-    bool contains(int x) {
-        return in_heap[x];
+    void clear() {
+        cnt = 0;
     }
     
-    void remove(int x) {
-        if (!in_heap[x]) return;
-        
-        int pos = -1;
-        for (int i = 1; i <= cnt; i++) {
-            if (arr[i] == x) {
-                pos = i;
-                break;
-            }
-        }
-        
-        if (pos == -1) return;
-        
-        in_heap[x] = false;
-        arr[pos] = arr[cnt--];
-        
-        for (int i = pos, j = i << 1; j <= cnt; i = j, j <<= 1) {
-            if (j + 1 <= cnt && arr[j + 1] < arr[j]) j++;
-            if (arr[j] < arr[i]) {
-                int tmp = arr[i];
-                arr[i] = arr[j];
-                arr[j] = tmp;
-            } else break;
-        }
-        
-        for (int i = pos, j = i >> 1; j; i = j, j >>= 1) {
-            if (arr[j] > arr[i]) {
-                int tmp = arr[i];
-                arr[i] = arr[j];
-                arr[j] = tmp;
-            } else break;
-        }
+    int size() {
+        return cnt;
+    }
+    
+    int get_at(int idx) {
+        return arr[idx];
     }
 };
 
 struct MaxHeap {
-    int arr[MAXN], cnt;
-    bool in_heap[MAXN];
+    int arr[MAXN];
+    int cnt;
     
     MaxHeap() {
         cnt = 0;
-        for (int i = 0; i < MAXN; i++) {
-            in_heap[i] = false;
-        }
     }
     
     void push(int x) {
-        if (in_heap[x]) return;
         arr[++cnt] = x;
-        in_heap[x] = true;
-        
         for (int i = cnt, j = cnt >> 1; j; i = j, j >>= 1) {
             if (arr[j] < arr[i]) {
                 int tmp = arr[i];
@@ -119,9 +79,7 @@ struct MaxHeap {
     
     void pop() {
         if (cnt == 0) return;
-        in_heap[arr[1]] = false;
         arr[1] = arr[cnt--];
-        
         for (int i = 1, j = i << 1; j <= cnt; i = j, j <<= 1) {
             if (j + 1 <= cnt && arr[j + 1] > arr[j]) j++;
             if (arr[j] > arr[i]) {
@@ -140,42 +98,16 @@ struct MaxHeap {
         return cnt == 0;
     }
     
-    bool contains(int x) {
-        return in_heap[x];
+    void clear() {
+        cnt = 0;
     }
     
-    void remove(int x) {
-        if (!in_heap[x]) return;
-        
-        int pos = -1;
-        for (int i = 1; i <= cnt; i++) {
-            if (arr[i] == x) {
-                pos = i;
-                break;
-            }
-        }
-        
-        if (pos == -1) return;
-        
-        in_heap[x] = false;
-        arr[pos] = arr[cnt--];
-        
-        for (int i = pos, j = i << 1; j <= cnt; i = j, j <<= 1) {
-            if (j + 1 <= cnt && arr[j + 1] > arr[j]) j++;
-            if (arr[j] > arr[i]) {
-                int tmp = arr[i];
-                arr[i] = arr[j];
-                arr[j] = tmp;
-            } else break;
-        }
-        
-        for (int i = pos, j = i >> 1; j; i = j, j >>= 1) {
-            if (arr[j] < arr[i]) {
-                int tmp = arr[i];
-                arr[i] = arr[j];
-                arr[j] = tmp;
-            } else break;
-        }
+    int size() {
+        return cnt;
+    }
+    
+    int get_at(int idx) {
+        return arr[idx];
     }
 };
 
@@ -199,11 +131,31 @@ struct ElevatorSystem {
     }
     
     void cancel_request(int x) {
-        if (x > current_floor) {
-            up_requests.remove(x);
-        } else {
-            down_requests.remove(x);
+        // Since we can't efficiently remove arbitrary elements from heap,
+        // we'll rebuild the heaps without the cancelled element
+        MinHeap new_up;
+        MaxHeap new_down;
+        
+        // Rebuild up_requests
+        while (!up_requests.empty()) {
+            int val = up_requests.top();
+            up_requests.pop();
+            if (val != x) {
+                new_up.push(val);
+            }
         }
+        
+        // Rebuild down_requests
+        while (!down_requests.empty()) {
+            int val = down_requests.top();
+            down_requests.pop();
+            if (val != x) {
+                new_down.push(val);
+            }
+        }
+        
+        up_requests = new_up;
+        down_requests = new_down;
     }
     
     void action() {
@@ -216,12 +168,66 @@ struct ElevatorSystem {
                 int next_floor = up_requests.top();
                 up_requests.pop();
                 current_floor = next_floor;
+                
+                // Rebuild heaps based on new current floor
+                MinHeap new_up;
+                MaxHeap new_down;
+                
+                while (!up_requests.empty()) {
+                    int val = up_requests.top();
+                    up_requests.pop();
+                    if (val > current_floor) {
+                        new_up.push(val);
+                    } else {
+                        new_down.push(val);
+                    }
+                }
+                
+                while (!down_requests.empty()) {
+                    int val = down_requests.top();
+                    down_requests.pop();
+                    if (val > current_floor) {
+                        new_up.push(val);
+                    } else {
+                        new_down.push(val);
+                    }
+                }
+                
+                up_requests = new_up;
+                down_requests = new_down;
             } else {
                 direction = -1; // reverse direction
                 if (!down_requests.empty()) {
                     int next_floor = down_requests.top();
                     down_requests.pop();
                     current_floor = next_floor;
+                    
+                    // Rebuild heaps based on new current floor
+                    MinHeap new_up;
+                    MaxHeap new_down;
+                    
+                    while (!up_requests.empty()) {
+                        int val = up_requests.top();
+                        up_requests.pop();
+                        if (val > current_floor) {
+                            new_up.push(val);
+                        } else {
+                            new_down.push(val);
+                        }
+                    }
+                    
+                    while (!down_requests.empty()) {
+                        int val = down_requests.top();
+                        down_requests.pop();
+                        if (val > current_floor) {
+                            new_up.push(val);
+                        } else {
+                            new_down.push(val);
+                        }
+                    }
+                    
+                    up_requests = new_up;
+                    down_requests = new_down;
                 }
             }
         } else { // going down
@@ -229,12 +235,66 @@ struct ElevatorSystem {
                 int next_floor = down_requests.top();
                 down_requests.pop();
                 current_floor = next_floor;
+                
+                // Rebuild heaps based on new current floor
+                MinHeap new_up;
+                MaxHeap new_down;
+                
+                while (!up_requests.empty()) {
+                    int val = up_requests.top();
+                    up_requests.pop();
+                    if (val > current_floor) {
+                        new_up.push(val);
+                    } else {
+                        new_down.push(val);
+                    }
+                }
+                
+                while (!down_requests.empty()) {
+                    int val = down_requests.top();
+                    down_requests.pop();
+                    if (val > current_floor) {
+                        new_up.push(val);
+                    } else {
+                        new_down.push(val);
+                    }
+                }
+                
+                up_requests = new_up;
+                down_requests = new_down;
             } else {
                 direction = 1; // reverse direction
                 if (!up_requests.empty()) {
                     int next_floor = up_requests.top();
                     up_requests.pop();
                     current_floor = next_floor;
+                    
+                    // Rebuild heaps based on new current floor
+                    MinHeap new_up;
+                    MaxHeap new_down;
+                    
+                    while (!up_requests.empty()) {
+                        int val = up_requests.top();
+                        up_requests.pop();
+                        if (val > current_floor) {
+                            new_up.push(val);
+                        } else {
+                            new_down.push(val);
+                        }
+                    }
+                    
+                    while (!down_requests.empty()) {
+                        int val = down_requests.top();
+                        down_requests.pop();
+                        if (val > current_floor) {
+                            new_up.push(val);
+                        } else {
+                            new_down.push(val);
+                        }
+                    }
+                    
+                    up_requests = new_up;
+                    down_requests = new_down;
                 }
             }
         }
