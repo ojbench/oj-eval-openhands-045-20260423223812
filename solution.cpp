@@ -52,10 +52,6 @@ struct MinHeap {
     int size() {
         return cnt;
     }
-    
-    int get_at(int idx) {
-        return arr[idx];
-    }
 };
 
 struct MaxHeap {
@@ -105,17 +101,13 @@ struct MaxHeap {
     int size() {
         return cnt;
     }
-    
-    int get_at(int idx) {
-        return arr[idx];
-    }
 };
 
 struct ElevatorSystem {
     int current_floor;
     int direction; // 1 for up, -1 for down
-    MinHeap up_requests;   // requests above current floor
-    MaxHeap down_requests; // requests below current floor
+    MinHeap up_heap;   // requests >= current floor
+    MaxHeap down_heap; // requests <= current floor
     
     ElevatorSystem() {
         current_floor = 0;
@@ -123,178 +115,119 @@ struct ElevatorSystem {
     }
     
     void add_request(int x) {
-        if (x > current_floor) {
-            up_requests.push(x);
+        if (x >= current_floor) {
+            up_heap.push(x);
         } else {
-            down_requests.push(x);
+            down_heap.push(x);
         }
     }
     
     void cancel_request(int x) {
-        // Since we can't efficiently remove arbitrary elements from heap,
-        // we'll rebuild the heaps without the cancelled element
+        // Rebuild heaps without the cancelled request
         MinHeap new_up;
         MaxHeap new_down;
         
-        // Rebuild up_requests
-        while (!up_requests.empty()) {
-            int val = up_requests.top();
-            up_requests.pop();
+        while (!up_heap.empty()) {
+            int val = up_heap.top();
+            up_heap.pop();
             if (val != x) {
                 new_up.push(val);
             }
         }
         
-        // Rebuild down_requests
-        while (!down_requests.empty()) {
-            int val = down_requests.top();
-            down_requests.pop();
+        while (!down_heap.empty()) {
+            int val = down_heap.top();
+            down_heap.pop();
             if (val != x) {
                 new_down.push(val);
             }
         }
         
-        up_requests = new_up;
-        down_requests = new_down;
+        up_heap = new_up;
+        down_heap = new_down;
     }
     
     void action() {
-        if (up_requests.empty() && down_requests.empty()) {
+        if (up_heap.empty() && down_heap.empty()) {
             return; // no requests, stay still
         }
         
         if (direction == 1) { // going up
-            if (!up_requests.empty()) {
-                int next_floor = up_requests.top();
-                up_requests.pop();
+            if (!up_heap.empty()) {
+                int next_floor = up_heap.top();
+                up_heap.pop();
                 current_floor = next_floor;
                 
-                // Rebuild heaps based on new current floor
+                // Move requests that are now below current floor to down_heap
                 MinHeap new_up;
-                MaxHeap new_down;
-                
-                while (!up_requests.empty()) {
-                    int val = up_requests.top();
-                    up_requests.pop();
+                while (!up_heap.empty()) {
+                    int val = up_heap.top();
+                    up_heap.pop();
                     if (val > current_floor) {
                         new_up.push(val);
                     } else {
-                        new_down.push(val);
+                        down_heap.push(val);
                     }
                 }
-                
-                while (!down_requests.empty()) {
-                    int val = down_requests.top();
-                    down_requests.pop();
-                    if (val > current_floor) {
-                        new_up.push(val);
-                    } else {
-                        new_down.push(val);
-                    }
-                }
-                
-                up_requests = new_up;
-                down_requests = new_down;
+                up_heap = new_up;
             } else {
                 direction = -1; // reverse direction
-                if (!down_requests.empty()) {
-                    int next_floor = down_requests.top();
-                    down_requests.pop();
+                if (!down_heap.empty()) {
+                    int next_floor = down_heap.top();
+                    down_heap.pop();
                     current_floor = next_floor;
                     
-                    // Rebuild heaps based on new current floor
-                    MinHeap new_up;
+                    // Move requests that are now above current floor to up_heap
                     MaxHeap new_down;
-                    
-                    while (!up_requests.empty()) {
-                        int val = up_requests.top();
-                        up_requests.pop();
-                        if (val > current_floor) {
-                            new_up.push(val);
-                        } else {
+                    while (!down_heap.empty()) {
+                        int val = down_heap.top();
+                        down_heap.pop();
+                        if (val < current_floor) {
                             new_down.push(val);
+                        } else {
+                            up_heap.push(val);
                         }
                     }
-                    
-                    while (!down_requests.empty()) {
-                        int val = down_requests.top();
-                        down_requests.pop();
-                        if (val > current_floor) {
-                            new_up.push(val);
-                        } else {
-                            new_down.push(val);
-                        }
-                    }
-                    
-                    up_requests = new_up;
-                    down_requests = new_down;
+                    down_heap = new_down;
                 }
             }
         } else { // going down
-            if (!down_requests.empty()) {
-                int next_floor = down_requests.top();
-                down_requests.pop();
+            if (!down_heap.empty()) {
+                int next_floor = down_heap.top();
+                down_heap.pop();
                 current_floor = next_floor;
                 
-                // Rebuild heaps based on new current floor
-                MinHeap new_up;
+                // Move requests that are now above current floor to up_heap
                 MaxHeap new_down;
-                
-                while (!up_requests.empty()) {
-                    int val = up_requests.top();
-                    up_requests.pop();
-                    if (val > current_floor) {
-                        new_up.push(val);
-                    } else {
+                while (!down_heap.empty()) {
+                    int val = down_heap.top();
+                    down_heap.pop();
+                    if (val < current_floor) {
                         new_down.push(val);
+                    } else {
+                        up_heap.push(val);
                     }
                 }
-                
-                while (!down_requests.empty()) {
-                    int val = down_requests.top();
-                    down_requests.pop();
-                    if (val > current_floor) {
-                        new_up.push(val);
-                    } else {
-                        new_down.push(val);
-                    }
-                }
-                
-                up_requests = new_up;
-                down_requests = new_down;
+                down_heap = new_down;
             } else {
                 direction = 1; // reverse direction
-                if (!up_requests.empty()) {
-                    int next_floor = up_requests.top();
-                    up_requests.pop();
+                if (!up_heap.empty()) {
+                    int next_floor = up_heap.top();
+                    up_heap.pop();
                     current_floor = next_floor;
                     
-                    // Rebuild heaps based on new current floor
+                    // Move requests that are now below current floor to down_heap
                     MinHeap new_up;
-                    MaxHeap new_down;
-                    
-                    while (!up_requests.empty()) {
-                        int val = up_requests.top();
-                        up_requests.pop();
+                    while (!up_heap.empty()) {
+                        int val = up_heap.top();
+                        up_heap.pop();
                         if (val > current_floor) {
                             new_up.push(val);
                         } else {
-                            new_down.push(val);
+                            down_heap.push(val);
                         }
                     }
-                    
-                    while (!down_requests.empty()) {
-                        int val = down_requests.top();
-                        down_requests.pop();
-                        if (val > current_floor) {
-                            new_up.push(val);
-                        } else {
-                            new_down.push(val);
-                        }
-                    }
-                    
-                    up_requests = new_up;
-                    down_requests = new_down;
+                    up_heap = new_up;
                 }
             }
         }
