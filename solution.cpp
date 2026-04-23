@@ -158,18 +158,13 @@ struct ElevatorSystem {
                 up_heap.pop();
                 current_floor = next_floor;
                 
-                // Clean up heaps: move elements that are now in wrong heap
-                MinHeap new_up;
-                while (!up_heap.empty()) {
+                // Only clean up when necessary - lazy approach
+                // Don't rebuild heaps completely, just move elements as needed
+                while (!up_heap.empty() && up_heap.top() <= current_floor) {
                     int val = up_heap.top();
                     up_heap.pop();
-                    if (val > current_floor) {
-                        new_up.push(val);
-                    } else {
-                        down_heap.push(val);
-                    }
+                    down_heap.push(val);
                 }
-                up_heap = new_up;
             } else {
                 direction = -1; // reverse direction
                 if (!down_heap.empty()) {
@@ -177,18 +172,12 @@ struct ElevatorSystem {
                     down_heap.pop();
                     current_floor = next_floor;
                     
-                    // Clean up heaps: move elements that are now in wrong heap
-                    MaxHeap new_down;
-                    while (!down_heap.empty()) {
+                    // Only clean up when necessary - lazy approach
+                    while (!down_heap.empty() && down_heap.top() >= current_floor) {
                         int val = down_heap.top();
                         down_heap.pop();
-                        if (val < current_floor) {
-                            new_down.push(val);
-                        } else {
-                            up_heap.push(val);
-                        }
+                        up_heap.push(val);
                     }
-                    down_heap = new_down;
                 }
             }
         } else { // going down
@@ -197,18 +186,12 @@ struct ElevatorSystem {
                 down_heap.pop();
                 current_floor = next_floor;
                 
-                // Clean up heaps: move elements that are now in wrong heap
-                MaxHeap new_down;
-                while (!down_heap.empty()) {
+                // Only clean up when necessary - lazy approach
+                while (!down_heap.empty() && down_heap.top() >= current_floor) {
                     int val = down_heap.top();
                     down_heap.pop();
-                    if (val < current_floor) {
-                        new_down.push(val);
-                    } else {
-                        up_heap.push(val);
-                    }
+                    up_heap.push(val);
                 }
-                down_heap = new_down;
             } else {
                 direction = 1; // reverse direction
                 if (!up_heap.empty()) {
@@ -216,18 +199,12 @@ struct ElevatorSystem {
                     up_heap.pop();
                     current_floor = next_floor;
                     
-                    // Clean up heaps: move elements that are now in wrong heap
-                    MinHeap new_up;
-                    while (!up_heap.empty()) {
+                    // Only clean up when necessary - lazy approach
+                    while (!up_heap.empty() && up_heap.top() <= current_floor) {
                         int val = up_heap.top();
                         up_heap.pop();
-                        if (val > current_floor) {
-                            new_up.push(val);
-                        } else {
-                            down_heap.push(val);
-                        }
+                        down_heap.push(val);
                     }
-                    up_heap = new_up;
                 }
             }
         }
